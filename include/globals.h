@@ -14,7 +14,7 @@
 
 #include "motor.h"
 
-#define CAN_MODE 0
+#define CAN_MODE 1
 
 extern Motor LeftTrackMotor;
 extern Motor RightTrackMotor;

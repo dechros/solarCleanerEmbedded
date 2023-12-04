@@ -4,12 +4,13 @@
 #include "waterPumpDriver.h"
 #include "mcp_can.h"
 
-#define RPM_MAX_SPEED   		(5)
-#define RPM_MIN_SPEED   		(1)
+#define RPM_MAX_SPEED   		(7)
+#define RPM_MIN_SPEED   		(3)
 
 MCP_CAN CAN(SPI_CS_PIN); 
 Message_t CANMessage;
 uint8_t RPM_SPEED = 3; /* 1 - 5 */
+uint8_t waterPumpButtonOldState = 0;
 
 void InitCANBus()
 {
@@ -40,7 +41,7 @@ void CheckCANMessage()
 			{
 				static uint8_t previousRampUpValue = 0;
 				static uint8_t previousRampDownValue = 0;
-				if (CANMessage.byte4.bit1 == 1 && previousRampUpValue == 0)
+				if (CANMessage.byte3.bit6 == 1 && previousRampUpValue == 0)
 				{
 					RPM_SPEED++;
 					if (RPM_SPEED > RPM_MAX_SPEED)
@@ -48,7 +49,7 @@ void CheckCANMessage()
 						RPM_SPEED = RPM_MAX_SPEED;
 					}
 				}
-				else if (CANMessage.byte4.bit2 == 1 && previousRampDownValue == 0)
+				else if (CANMessage.byte3.bit7 == 1 && previousRampDownValue == 0)
 				{
 					RPM_SPEED--;
 					if (RPM_SPEED < RPM_MIN_SPEED)
@@ -56,41 +57,41 @@ void CheckCANMessage()
 						RPM_SPEED = RPM_MIN_SPEED;
 					}
 				}
-				previousRampUpValue = CANMessage.byte4.bit1;
-				previousRampDownValue = CANMessage.byte4.bit2;
+				previousRampUpValue = CANMessage.byte3.bit6;
+				previousRampDownValue = CANMessage.byte3.bit7;
 				
-				if (CANMessage.byte8.paddleDValue > JOYSTICK_DEAD_ZONE_CAN_REMOTE)
+				if (CANMessage.byte5.paddleAValue > JOYSTICK_DEAD_ZONE_CAN_REMOTE)
 				{
-					RightTrackMotor.SetTargetSpeed((uint8_t)((CANMessage.byte8.paddleDValue / 3) * ((double)RPM_SPEED / RPM_MAX_SPEED)));
+					RightTrackMotor.SetTargetSpeed((uint8_t)((CANMessage.byte5.paddleAValue / 3) * ((double)RPM_SPEED / RPM_MAX_SPEED)));
 				}
 				else
 				{
 					RightTrackMotor.SetTargetSpeed(0);
 				}
 				
-				if (CANMessage.byte2.paddleDNorth == 1 && CANMessage.byte2.paddleDSouth == 0)
+				if (CANMessage.byte2.paddleANorth == 1 && CANMessage.byte2.paddleASouth == 0)
 				{
 					RightTrackMotor.SetTargetDirection(REVERSE);
 				}
-				else if (CANMessage.byte2.paddleDNorth == 0 && CANMessage.byte2.paddleDSouth == 1)
+				else if (CANMessage.byte2.paddleANorth == 0 && CANMessage.byte2.paddleASouth == 1)
 				{
 					RightTrackMotor.SetTargetDirection(FORWARD);
 				}
 
-				if (CANMessage.byte5.paddleAValue > JOYSTICK_DEAD_ZONE_CAN_REMOTE)
+				if (CANMessage.byte8.paddleDValue > JOYSTICK_DEAD_ZONE_CAN_REMOTE)
 				{
-					LeftTrackMotor.SetTargetSpeed((uint8_t)((CANMessage.byte5.paddleAValue / 3) * ((double)RPM_SPEED / RPM_MAX_SPEED)));
+					LeftTrackMotor.SetTargetSpeed((uint8_t)((CANMessage.byte8.paddleDValue / 3) * ((double)RPM_SPEED / RPM_MAX_SPEED)));
 				}
 				else
 				{
 					LeftTrackMotor.SetTargetSpeed(0);
 				}
 				
-				if (CANMessage.byte2.paddleANorth == 1 && CANMessage.byte2.paddleASouth == 0)
+				if (CANMessage.byte2.paddleDNorth == 1 && CANMessage.byte2.paddleDSouth == 0)
 				{
 					LeftTrackMotor.SetTargetDirection(FORWARD);
 				}
-				else if (CANMessage.byte2.paddleANorth == 0 && CANMessage.byte2.paddleASouth == 1)
+				else if (CANMessage.byte2.paddleDNorth == 0 && CANMessage.byte2.paddleDSouth == 1)
 				{
 					LeftTrackMotor.SetTargetDirection(REVERSE);
 				}
@@ -104,23 +105,20 @@ void CheckCANMessage()
 					BrushesMotor.SetTargetSpeed(0);
 				}
 				
-				if (CANMessage.byte3.bit6 == 0 && CANMessage.byte3.bit5 == 1)
+				if (CANMessage.byte3.bit3 == 0 && CANMessage.byte3.bit4 == 1)
 				{
 					BrushesMotor.SetTargetDirection(FORWARD);
 				}
-				else if (CANMessage.byte3.bit6 == 1 && CANMessage.byte3.bit5 == 0)
+				else if (CANMessage.byte3.bit3 == 1 && CANMessage.byte3.bit4 == 0)
 				{
 					BrushesMotor.SetTargetDirection(REVERSE);
 				}
 
-				if (CANMessage.byte3.bit7 == 1)
+				if (CANMessage.byte3.bit2 == 1 && waterPumpButtonOldState == 0)
 				{
-					WaterPumpOn();
+					WaterPumpToggle();
 				}
-				else if (CANMessage.byte3.bit7 == 0)
-				{
-					WaterPumpOff();
-				}
+				waterPumpButtonOldState = CANMessage.byte3.bit2;
 			}
 		}
 	}

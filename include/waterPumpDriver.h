@@ -27,4 +27,10 @@ void WaterPumpOn(void);
  */
 void WaterPumpOff(void);
 
+/**
+ * @brief Toggles the water pump for remotes using a push button.
+ * 
+ */
+void WaterPumpToggle(void);
+
 #endif
